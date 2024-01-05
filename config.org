@@ -1,0 +1,189 @@
+#+TITLE: Emacs config file
+
+* Package installation
+** Installation
+#+begin_src emacs-lisp
+  (require 'package)
+  (add-to-list 'package-archives
+	      '("melpa" . "https://melpa.org/packages/"))
+
+  ;; Initialize packages
+  (package-initialize)
+  ;; Function to install packages if not already installed
+  (defun ensure-package-installed (&rest packages)
+  (dolist (package packages)
+      (unless (package-installed-p package)
+      (package-install package))))
+
+  (ensure-package-installed 'async)
+
+  (eval-and-compile
+  (require 'async)
+  (async-start
+      `(lambda ()
+      (require 'package)
+      (add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/"))
+      (package-initialize)
+      (package-refresh-contents))
+      (lambda (_)
+      (message "Package refresh completed"))))
+  (ensure-package-installed 'evil)
+  (ensure-package-installed 'evil-collection)
+  (ensure-package-installed 'company)
+  (ensure-package-installed 'company-tabnine)
+  (ensure-package-installed 'projectile)
+  (ensure-package-installed 'key-chord)
+#+end_src
+** Packages
+*** COMPANY
+#+begin_src emacs-lisp
+  (require 'company-tabnine)
+  (add-to-list 'company-backends #'company-tabnine)
+  ;; Trigger completion immediately.
+  (setq company-idle-delay 0)
+  ;; Number the candidates (use M-1, M-2 etc to select completions).
+  (setq company-show-numbers t)
+#+end_src
+
+*** PROJECTILE
+#+begin_src emacs-lisp
+  (require 'projectile)
+  (define-key projectile-mode-map (kbd "C-c p") 'projectile-command-map)
+  (projectile-mode +1)
+#+end_src
+
+*** EVIL
+#+begin_src emacs-lisp
+  (use-package evil :init
+    (setq evil-want-keybinding nil)
+    (evil-mode 1))
+  (use-package evil-escape
+    :ensure t
+    :init
+    (evil-escape-mode)
+        :config
+        (setq-default evil-escape-key-sequence "hh") 
+        (setq-default evil-escape-delay 0.4))
+  (use-package evil-collection
+    :after evil
+    :config
+    (setq evil-collection-mode-list '(dashboard dired ibuffer))
+    (evil-collection-init))
+#+end_src
+
+*** WHICHKEY
+#+begin_src emacs-lisp
+(ensure-package-installed 'which-key)
+(use-package which-key
+      :init (which-key-mode 1)
+      :config
+      (setq which-key-side-window-location 'bottom
+      which-key-sort-order #'which-key-key-order-alpha
+      which-key-sort-uppercase-first nil
+      which-key-add-column-padding 1
+      which-key-max-display-columns nil
+      which-key-min-display-lines 6)
+  )
+#+end_src
+
+*** IVY
+#+begin_src emacs-lisp
+  (ensure-package-installed 'ivy)
+
+  (use-package ivy 
+  :custom 
+  (setq enable-recursize-minibuffers t)
+  :config
+  (ivy-mode))
+
+#+end_src
+
+**** Counsel
+#+begin_src emacs-lisp
+  (ensure-package-installed 'counsel)
+  (use-package counsel
+    :after ivy
+    :config (counsel-mode))
+#+end_src
+
+*** LSP
+#+begin_src emacs-lisp
+  (ensure-package-installed 'lsp-mode)
+  (ensure-package-installed 'lsp-ui)
+  (use-package lsp-mode)
+  (use-package lsp-ui)
+  (require 'lsp-mode)
+  (add-hook 'rust-mode-hook #'lsp-deferred)
+#+end_src
+
+* KEYBINDINGS
+** functions
+#+begin_src emacs-lisp
+  (defun find-config ()
+    (interactive)
+    (find-file "~/.emacs.d/config.org")
+  )
+#+end_src
+** keybindings
+#+begin_src emacs-lisp
+  (evil-set-leader 'normal (kbd "SPC"))
+
+  (evil-define-key 'normal 'global (kbd "<leader>sb") 'switch-to-buffer)
+  (evil-define-key 'normal 'global (kbd "<leader>fc") 'find-config)
+  (evil-define-key 'normal 'global (kbd "<leader>vw") 'split-window-right)
+  (evil-define-key 'normal 'global (kbd "<leader>hw") 'split-window-below)
+  (evil-define-key 'normal 'global (kbd "<leader>nb") 'next-buffer)
+  (evil-define-key 'normal 'global (kbd "<leader>pb") 'previous-buffer)
+
+  (defun reload-init-file ()
+    (interactive)
+    (load-file user-init-file))
+  (evil-define-key 'normal 'global (kbd "<leader>qr") 'reload-init-file)
+  (evil-define-key 'normal 'global (kbd "<leader>fr") 'counsel-recentf)
+
+  ;;moving through windowses and buffers
+  (define-key evil-normal-state-map (kbd "H") 'evil-window-left)
+  (define-key evil-normal-state-map (kbd "L") 'evil-window-right)
+  (define-key evil-normal-state-map (kbd "J") 'evil-window-bottom)
+  (define-key evil-normal-state-map (kbd "K") 'evil-window-up)
+
+  (defun inc_win () (interactive) (evil-window-increase-width 10))
+  (defun dec_win () (interactive) (evil-window-decrease-width 10))
+  (define-key evil-normal-state-map (kbd "+") 'inc_win)
+  (define-key evil-normal-state-map (kbd "_") 'dec_win)
+
+  ;; moving windowses
+  (define-key evil-normal-state-map (kbd "C-k") 'evil-window-move-very-top)
+  (define-key evil-normal-state-map (kbd "C-j") 'evil-window-move-very-bottom)
+  (define-key evil-normal-state-map (kbd "C-h") 'evil-window-move-far-left)
+  (define-key evil-normal-state-map (kbd "C-l") 'evil-window-move-far-right)
+
+#+end_src
+* ORG SETTINGS
+#+begin_src emacs-lisp
+  (ensure-package-installed 'org-bullets)
+  (add-hook 'org-mode-hook 'org-indent-mode)
+  (require 'org-bullets)
+  (add-hook 'org-mode-hook (lambda () (org-bullets-mode 1)))
+#+end_src
+* FACE SETTINGS
+** Font, theme, gui panels
+#+begin_src emacs-lisp
+  (menu-bar-mode -1)
+  (scroll-bar-mode -1)
+  (tool-bar-mode -1)
+  (setq use-dialog-box nil)
+  (global-display-line-numbers-mode 1)
+  ;;(setq initial-buffer-choice "/home/vomit/.emacs.d/config.org")
+
+  (set-face-attribute 'default nil :font "MartianMono-10")
+
+  (add-to-list 'custom-theme-load-path "~/.emacs.d/themes/")
+  ;;(load-theme 'cherry-blossom t)
+  (load-theme 'base16-tomorrow t)
+#+end_src
+** Indent
+#+begin_src emacs-lisp
+  (electric-indent-mode 0)
+  (require 'org-tempo) ;; <- just <s and TAB and its creates `code-block
+#+end_src
